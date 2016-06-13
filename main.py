@@ -220,7 +220,8 @@ if __name__ == '__main__':
 
     test_datagen = ImageDataGenerator(
                      featurewise_center=True,
-                     featurewise_std_normalization=True)
+                     featurewise_std_normalization=True,
+                     zca_whitening=True)
     test_datagen.fit(X_train)
 
     mk_dir(CHECKPOINT_PATH)
