@@ -207,15 +207,13 @@ if __name__ == '__main__':
         from keras.utils.visualize_util import plot
         plot(model, to_file=os.path.join(MODEL_PATH, 'WRN-{0}-{1}.png'.format(depth, k)), show_shapes=True)
         
-    #Data Augmentation from page 6
+    # Data Augmentation based on page 6 (see README for full details)
     logging.debug("Creating ImageDataGenerators...")   
     train_datagen = ImageDataGenerator(
                                 featurewise_center=True,
                                 featurewise_std_normalization=True,
                                 zca_whitening=True,
                                 horizontal_flip=True)
-    #NEED TO ADD (page 6): "random crops from image padded by 4 pixels on each side, filling missing pixels with reflections of original image."
-    #SEE: https://github.com/szagoruyko/wide-residual-networks/blob/master/augmentation.lua
     train_datagen.fit(X_train, augment=True, rounds=2)
 
     test_datagen = ImageDataGenerator(

@@ -29,8 +29,18 @@ There are three configuration sections at the top of `main.py`:
 - [OUTPUT CONFIGURATION](https://github.com/asmith26/wide_resnets_keras/blob/master/main.py#L77-85): Defines paths regarding where to save model/checkpoint weights and plots.
 
 
-## Results:
-- Running **WRN-40-4 no dropout** now.
+## Results and Trained models:
+- ***WRN-40-4 no dropout***:
+  - Using the same values in **main.py** except `depth=40` and `widen-factor=4`, I obtained a **validation loss = 0.37** and **accuracy = 0.93**. This test error (i.e. 1 - 0.93 = **7%**) is a little higher than the reported result (Table 4 states the same model obtains a test error of *4.17%*); see the note below for a likely explanation.
+  - You can find the trained weights for this model at **models/WRN-40-4.h5**, whilst **models/test.py** provides an example running these weights against the test set.
+
+**Note:** I have not followed the exact same preprocessing and data augmentation steps used in the paper, in particular:
+
+- "global *contrast* normalization", and
+- "random crops from image padded by 4 pixels on each side, filling missing pixels with reflections of original image", which appears to be implemented in [this file](https://github.com/szagoruyko/wide-residual-networks/blob/master/augmentation.lua).
+
+Ideally, we will add such methods directly to the [Keras image preprocessing script](https://github.com/fchollet/keras/blob/master/keras/preprocessing/image.py).
+
 
 ##<a name="example-plot">WRN-16-2 Architecture</a>
 ![WRN-16-2 Architecture](models/WRN-16-2.png?raw=true "WRN-16-2 Architecture")
