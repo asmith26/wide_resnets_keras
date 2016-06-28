@@ -31,8 +31,8 @@ There are three configuration sections at the top of `main.py`:
 
 ## Results and Trained models:
 - ***WRN-40-4 no dropout***:
-  - Using the same values in **main.py** except `depth=40` and `widen-factor=4`, I obtained a **validation loss = 0.37** and **accuracy = 0.93**. This test error (i.e. 1 - 0.93 = **7%**) is a little higher than the reported result (Table 4 states the same model obtains a test error of *4.17%*); see the note below for a likely explanation.
-  - You can find the trained weights for this model at **models/WRN-40-4.h5**, whilst **models/test.py** provides an example running these weights against the test set.
+  - Using the same values in **main.py** except `depth=40` and `widen-factor=4`, I obtained a **test loss = 0.37** and **accuracy = 0.93**. This test error (i.e. 1 - 0.93 = **7%**) is a little higher than the reported result (Table 4 states the same model obtains a test error of *4.97%*); see the note below for a likely explanation.
+  - You can find the trained weights for this model at **models/WRN-40-4.h5**, whilst **[models/test.py](https://github.com/asmith26/wide_resnets_keras/blob/master/models/test.py)** provides an example of running these weights against the test set.
 
 **Note:** I have not followed the exact same preprocessing and data augmentation steps used in the paper, in particular:
 
