@@ -26,6 +26,7 @@ from keras.regularizers import l2
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import np_utils
+from keras import backend as K
 
 from utils import mk_dir
 
@@ -98,15 +99,20 @@ def _wide_basic(n_input_plane, n_output_plane, stride):
         
         n_bottleneck_plane = n_output_plane
 
+        if K.image_dim_ordering() == "th":
+            channel_axis = 1
+        else:
+            channel_axis = -1
+
         # Residual block
         for i, v in enumerate(conv_params):
             if i == 0:
                 if n_input_plane != n_output_plane:
-                    net = BatchNormalization(axis=1)(net)
+                    net = BatchNormalization(axis=channel_axis)(net)
                     net = Activation("relu")(net)
                     convs = net
                 else:
-                    convs = BatchNormalization(axis=1)(net)
+                    convs = BatchNormalization(axis=channel_axis)(net)
                     convs = Activation("relu")(convs)
                 convs = Convolution2D(n_bottleneck_plane, nb_col=v[0], nb_row=v[1],
                                      subsample=v[2],
@@ -115,7 +121,7 @@ def _wide_basic(n_input_plane, n_output_plane, stride):
                                      W_regularizer=l2(weight_decay),
                                      bias=use_bias)(convs)
             else:
-                convs = BatchNormalization(axis=1)(convs)
+                convs = BatchNormalization(axis=channel_axis)(convs)
                 convs = Activation("relu")(convs)
                 if dropout_probability > 0:
                    convs = Dropout(dropout_probability)(convs)
@@ -161,8 +167,13 @@ def create_model():
     
     assert((depth - 4) % 6 == 0)
     n = (depth - 4) / 6
-    
-    inputs = Input(shape=(3, image_size, image_size))
+
+    if K.image_dim_ordering() == "th":
+        channel_axis = 1
+        inputs = Input(shape=(3, image_size, image_size))
+    else:
+        channel_axis = -1
+        inputs = Input(shape=(image_size, image_size, 3))
 
     n_stages=[16, 16*k, 32*k, 64*k]
 
@@ -179,7 +190,7 @@ def create_model():
     conv3 = _layer(block_fn, n_input_plane=n_stages[1], n_output_plane=n_stages[2], count=n, stride=(2,2))(conv2)# "Stage 2 (spatial size: 16x16)"
     conv4 = _layer(block_fn, n_input_plane=n_stages[2], n_output_plane=n_stages[3], count=n, stride=(2,2))(conv3)# "Stage 3 (spatial size: 8x8)"
 
-    batch_norm = BatchNormalization(axis=1)(conv4)
+    batch_norm = BatchNormalization(axis=channel_axis)(conv4)
     relu = Activation("relu")(batch_norm)
                                             
     # Classifier block
