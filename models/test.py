@@ -22,13 +22,6 @@ from keras.utils import np_utils
 from keras.optimizers import SGD
 from keras.preprocessing.image import ImageDataGenerator
 
-# ================================================
-# NETWORK CONFIGURATION:
-depth = 40
-k = 4
-batch_size = 128
-sgd = SGD(lr=0.1, momentum=0.9, nesterov=True)
-# ================================================
 
 # ================================================
 # DATA CONFIGURATION:
@@ -44,6 +37,14 @@ X_test = X_test.astype('float32')
 # convert class vectors to binary class matrices
 Y_train = np_utils.to_categorical(y_train, nb_classes)
 Y_test = np_utils.to_categorical(y_test, nb_classes)
+# ================================================
+
+# ================================================
+# NETWORK/TRAINING CONFIGURATION:
+depth = 40
+k = 4
+batch_size = 128
+sgd = SGD(lr=0.1, momentum=0.9, nesterov=True)
 # ================================================
 
 
