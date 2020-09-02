@@ -41,20 +41,19 @@ Y_test = to_categorical(y_test, nb_classes)
 
 # ================================================
 # NETWORK/TRAINING CONFIGURATION:
-depth = 40
-k = 4
+depth = 28
+k = 10
 batch_size = 128
 sgd = SGD(lr=0.1, momentum=0.9, nesterov=True)
 # ================================================
 
 
 logging.debug("Loading pre-trained model...")
-'''
+
 # This will work for model saved with updated main.py
 model = load_model('WRN-{0}-{1}.h5'.format(depth, k))
-'''
-model = model_from_json( open( 'WRN-{0}-{1}.json'.format(depth, k) ).read() )
-model.load_weights( 'WRN-{0}-{1}.h5'.format(depth, k) )
+#model = model_from_json( open( 'WRN-{0}-{1}.json'.format(depth, k) ).read() )
+#model.load_weights( 'WRN-{0}-{1}.h5'.format(depth, k) )
 model.compile(optimizer=sgd, loss="categorical_crossentropy", metrics=['accuracy'])
 
 
@@ -67,7 +66,7 @@ test_datagen.fit(X_train)
 
 logging.debug("Running testing...")
 results = model.evaluate(test_datagen.flow(X_test, Y_test, batch_size=batch_size),
-                                   val_samples=X_test.shape[0])
+                                           steps=X_test.shape[0]/batch_size)
 
 logging.info("Results:")
 logging.info("Test loss: {0}".format(results[0]))
