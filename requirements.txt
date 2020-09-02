@@ -1,10 +1,9 @@
-numpy==1.11.2
-scipy==0.18.1
-pyyaml==3.12
-h5py==2.6.0
-tensorflow==1.15.2
-keras==1.0.3
+numpy==1.17.4
+scipy==1.4.1
+pyyaml==5.3.1
+h5py==2.10.0
+tensorflow==2.3.0
 
 # For architecture plotting
-#pydot==1.1.0
-#graphviz==0.5.2
+#pydot==1.4.1
+#graphviz==0.13.2

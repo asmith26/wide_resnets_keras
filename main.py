@@ -16,18 +16,15 @@ sys.setrecursionlimit(2 ** 20)
 import numpy as np
 np.random.seed(2 ** 10)
 
-from keras.datasets import cifar10
-from keras.models import Model
-from keras.layers import Input, Activation, merge, Dense, Flatten
-from keras.layers.convolutional import Convolution2D, AveragePooling2D
-from keras.layers.normalization import BatchNormalization
-from keras.optimizers import SGD
-from keras.regularizers import l2
-from keras.callbacks import LearningRateScheduler, ModelCheckpoint
-from keras.preprocessing.image import ImageDataGenerator
-from keras.utils import np_utils
-from keras import backend as K
-
+from tensorflow.keras.datasets import cifar10
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Conv2D, AveragePooling2D, BatchNormalization, Dropout, Input, Activation, Add, Dense, Flatten
+from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.callbacks import LearningRateScheduler, ModelCheckpoint
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from keras.utils import to_categorical
+from tensorflow.keras import backend as K
 from utils import mk_dir
 
 
@@ -43,15 +40,15 @@ X_train = X_train.astype('float32')
 X_test = X_test.astype('float32')
 
 # convert class vectors to binary class matrices
-Y_train = np_utils.to_categorical(y_train, nb_classes)
-Y_test = np_utils.to_categorical(y_test, nb_classes)
+Y_train = to_categorical(y_train, nb_classes)
+Y_test = to_categorical(y_test, nb_classes)
 # ================================================
 
 # ================================================
 # NETWORK/TRAINING CONFIGURATION:
 logging.debug("Loading network/training configuration...")
 
-depth = 28              # table 5 on page 8 indicates best value (4.17) CIFAR-10
+depth = 28             # table 5 on page 8 indicates best value (4.17) CIFAR-10
 k = 10                  # 'widen_factor'; table 5 on page 8 indicates best value (4.17) CIFAR-10
 dropout_probability = 0 # table 6 on page 10 indicates best value (4.17) CIFAR-10
 
@@ -76,7 +73,7 @@ use_bias = False        # following functions 'FCinit(model)' and 'DisableBias(m
 weight_init="he_normal" # follows the 'MSRinit(model)' function in utils.lua
 
 # Keras specific
-if K.image_dim_ordering() == "th":
+if K.image_data_format() == "th":
     logging.debug("image_dim_ordering = 'th'")
     channel_axis = 1
     input_shape = (3, image_size, image_size)
@@ -89,7 +86,7 @@ else:
 # ================================================
 # OUTPUT CONFIGURATION:
 print_model_summary = True
-save_model_and_weights = True
+save_model = True
 save_model_plot = False
 
 MODEL_PATH = os.environ.get('MODEL_PATH', 'models/')
@@ -120,39 +117,42 @@ def _wide_basic(n_input_plane, n_output_plane, stride):
                 else:
                     convs = BatchNormalization(axis=channel_axis)(net)
                     convs = Activation("relu")(convs)
-                convs = Convolution2D(n_bottleneck_plane, nb_col=v[0], nb_row=v[1],
-                                     subsample=v[2],
-                                     border_mode=v[3],
-                                     init=weight_init,
-                                     W_regularizer=l2(weight_decay),
-                                     bias=use_bias)(convs)
+                convs = Conv2D(n_bottleneck_plane, 
+                               (v[0],v[1]),
+                                strides=v[2],
+                                padding=v[3],
+                                kernel_initializer=weight_init,
+                                kernel_regularizer=l2(weight_decay),
+                                use_bias=use_bias)(convs)
             else:
                 convs = BatchNormalization(axis=channel_axis)(convs)
                 convs = Activation("relu")(convs)
                 if dropout_probability > 0:
                    convs = Dropout(dropout_probability)(convs)
-                convs = Convolution2D(n_bottleneck_plane, nb_col=v[0], nb_row=v[1],
-                                     subsample=v[2],
-                                     border_mode=v[3],
-                                     init=weight_init,
-                                     W_regularizer=l2(weight_decay),
-                                     bias=use_bias)(convs)
+                convs = Conv2D(n_bottleneck_plane, 
+                               (v[0],v[1]),
+                                strides=v[2],
+                                padding=v[3],
+                                kernel_initializer=weight_init,
+                                kernel_regularizer=l2(weight_decay),
+                                use_bias=use_bias)(convs)
 
         # Shortcut Conntection: identity function or 1x1 convolutional
         #  (depends on difference between input & output shape - this
         #   corresponds to whether we are using the first block in each
         #   group; see _layer() ).
         if n_input_plane != n_output_plane:
-            shortcut = Convolution2D(n_output_plane, nb_col=1, nb_row=1,
-                                     subsample=stride,
-                                     border_mode="same",
-                                     init=weight_init,
-                                     W_regularizer=l2(weight_decay),
-                                     bias=use_bias)(net)
+            shortcut = Conv2D(n_output_plane, 
+                              (1,1),
+                              strides=stride,
+                              padding="same",
+                              kernel_initializer=weight_init,
+                              kernel_regularizer=l2(weight_decay),
+                              use_bias=use_bias)(net)
         else:
             shortcut = net
 
-        return merge([convs, shortcut], mode="sum")
+        return Add()([convs, shortcut])
     
     return f
 
@@ -178,12 +178,14 @@ def create_model():
 
     n_stages=[16, 16*k, 32*k, 64*k]
 
-    conv1 = Convolution2D(nb_filter=n_stages[0], nb_row=3, nb_col=3, 
-                          subsample=(1, 1),
-                          border_mode="same",
-                          init=weight_init,
-                          W_regularizer=l2(weight_decay),
-                          bias=use_bias)(inputs) # "One conv at the beginning (spatial size: 32x32)"
+
+    conv1 = Conv2D(n_stages[0], 
+                    (3, 3), 
+                    strides=1,
+                    padding="same",
+                    kernel_initializer=weight_init,
+                    kernel_regularizer=l2(weight_decay),
+                    use_bias=use_bias)(inputs) # "One conv at the beginning (spatial size: 32x32)"
 
     # Add wide residual blocks
     block_fn = _wide_basic
@@ -195,12 +197,12 @@ def create_model():
     relu = Activation("relu")(batch_norm)
                                             
     # Classifier block
-    pool = AveragePooling2D(pool_size=(8, 8), strides=(1, 1), border_mode="same")(relu)
+    pool = AveragePooling2D(pool_size=(8, 8), strides=(1, 1), padding="same")(relu)
     flatten = Flatten()(pool)
-    predictions = Dense(output_dim=nb_classes, init=weight_init, bias=use_bias,
-                        W_regularizer=l2(weight_decay), activation="softmax")(flatten)
+    predictions = Dense(units=nb_classes, kernel_initializer=weight_init, use_bias=use_bias,
+                        kernel_regularizer=l2(weight_decay), activation="softmax")(flatten)
 
-    model = Model(input=inputs, output=predictions)
+    model = Model(inputs=inputs, outputs=predictions)
     return model
 
 
@@ -216,8 +218,8 @@ if __name__ == '__main__':
     if save_model_plot:
         logging.debug("Saving model plot...")
         mk_dir(MODEL_PATH)
-        from keras.utils.visualize_util import plot
-        plot(model, to_file=os.path.join(MODEL_PATH, 'WRN-{0}-{1}.png'.format(depth, k)), show_shapes=True)
+        from tensorflow.keras.utils import plot_model
+        plot_model(model, to_file=os.path.join(MODEL_PATH, 'WRN-{0}-{1}.png'.format(depth, k)), show_shapes=True)
         
     # Data Augmentation based on page 6 (see README for full details)
     logging.debug("Creating ImageDataGenerators...")
@@ -246,16 +248,14 @@ if __name__ == '__main__':
 
     logging.debug("Running training...")
     # fit the model on the batches generated by train_datagen.flow()
-    model.fit_generator(train_datagen.flow(X_train, Y_train, batch_size=batch_size, shuffle=True),
-                        samples_per_epoch=X_train.shape[0],
-                        nb_epoch=nb_epochs,
+    model.fit(train_datagen.flow(X_train, Y_train, batch_size=batch_size, shuffle=True),
+                        steps_per_epoch=X_train.shape[0],   
+                        epochs=nb_epochs,
                         validation_data=test_datagen.flow(X_test, Y_test, batch_size=batch_size),
-                        nb_val_samples=X_test.shape[0],
                         callbacks=callbacks)
-
-    if save_model_and_weights:
+    
+    if save_model:
         logging.debug("Saving model...")
         mk_dir(MODEL_PATH)
-        with open( os.path.join(MODEL_PATH, 'WRN-{0}-{1}.json'.format(depth, k)), 'w') as f:
-            f.write(model.to_json())
-        model.save_weights( os.path.join(MODEL_PATH, 'WRN-{0}-{1}.h5'.format(depth, k)), overwrite=True)
+        model.save(os.path.join(MODEL_PATH, 'WRN-{0}-{1}.h5'.format(depth, k)), overwrite=True)
+        
