@@ -234,7 +234,7 @@ if __name__ == '__main__':
                      featurewise_center=True,
                      featurewise_std_normalization=True,
                      zca_whitening=True)
-    test_datagen.fit(X_train)
+    test_datagen.fit(X_test)
 
     mk_dir(CHECKPOINT_PATH)
     callbacks = [ LearningRateScheduler(schedule=schedule),
